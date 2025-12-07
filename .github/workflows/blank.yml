@@ -1,0 +1,562 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Anime Battle Tic Tac Toe</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;700;900&display=swap');
+
+        :root {
+            /* Removed solid background color for image */
+            --panel-bg: rgba(26, 26, 32, 0.95); /* Made panel slightly transparent */
+            --accent-x: #00f2ff; /* Cyber Blue */
+            --accent-o: #ff0055; /* Cyber Pink */
+            --text-main: #ffffff;
+            --neon-glow-x: 0 0 15px rgba(0, 242, 255, 0.6);
+            --neon-glow-o: 0 0 15px rgba(255, 0, 85, 0.6);
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: 'Poppins', sans-serif;
+            /* New Background Image */
+            background-image: url('image_0.png');
+            background-size: cover;
+            background-position: center;
+            background-repeat: no-repeat;
+            background-attachment: fixed; /* Keeps background static */
+            color: var(--text-main);
+            height: 100vh;
+            overflow: hidden;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            user-select: none;
+        }
+
+        /* --- LAYOUT --- */
+        .main-layout {
+            display: flex;
+            align-items: center;
+            gap: 40px;
+            width: 90%;
+            max-width: 1200px;
+            justify-content: center;
+            transition: filter 0.3s;
+        }
+
+        /* Character Panels */
+        .player-panel {
+            background: var(--panel-bg);
+            width: 250px;
+            height: 400px;
+            border-radius: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 20px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+            border: 2px solid transparent;
+            transition: all 0.3s ease;
+            position: relative;
+            backdrop-filter: blur(5px); /* Added blur for glass effect */
+        }
+
+        .player-panel.active-x { border-color: var(--accent-x); box-shadow: var(--neon-glow-x); transform: scale(1.05); }
+        .player-panel.active-o { border-color: var(--accent-o); box-shadow: var(--neon-glow-o); transform: scale(1.05); }
+
+        .anime-img {
+            width: 100%;
+            height: 200px;
+            background-color: #25252b;
+            border-radius: 15px;
+            margin-bottom: 20px;
+            object-fit: cover;
+            border: 1px solid rgba(255,255,255,0.1);
+        }
+
+        .player-info { text-align: center; }
+        .player-name { font-size: 1.5rem; font-weight: 700; margin-bottom: 5px; }
+        .player-score { font-size: 2rem; font-weight: 900; margin-top: auto; }
+        .p-x { color: var(--accent-x); }
+        .p-o { color: var(--accent-o); }
+
+        /* Game Board Area */
+        .game-area {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .turn-indicator {
+            margin-bottom: 20px;
+            font-size: 1.2rem;
+            color: #888;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+        }
+
+        .board {
+            display: grid;
+            grid-template-columns: repeat(3, auto);
+            gap: 15px;
+            background: rgba(22, 22, 26, 0.95); /* Slightly transparent board */
+            padding: 20px;
+            border-radius: 25px;
+            box-shadow: 0 20px 50px rgba(0,0,0,0.5);
+            backdrop-filter: blur(5px);
+        }
+
+        .cell {
+            width: 100px;
+            height: 100px;
+            background: #222229;
+            border-radius: 15px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 3.5rem;
+            font-weight: 900;
+            cursor: pointer;
+            transition: 0.2s;
+            box-shadow: inset 5px 5px 10px rgba(0,0,0,0.5), inset -5px -5px 10px rgba(255,255,255,0.05);
+        }
+
+        .cell:hover { background: #2a2a33; }
+        .cell.x { color: var(--accent-x); text-shadow: var(--neon-glow-x); }
+        .cell.o { color: var(--accent-o); text-shadow: var(--neon-glow-o); }
+        
+        .cell.win { background: #fff; animation: flash 1s infinite alternate; }
+        @keyframes flash { from { opacity: 1; } to { opacity: 0.5; } }
+
+        /* --- OVERLAYS --- */
+        .overlay {
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.85);
+            backdrop-filter: blur(10px);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 100;
+            transition: opacity 0.5s, visibility 0.5s;
+        }
+
+        .hidden { opacity: 0; pointer-events: none; visibility: hidden; }
+
+        .modal {
+            background: linear-gradient(135deg, rgba(26, 26, 32, 0.95), rgba(15, 15, 19, 0.95)); /* Transparent modal */
+            padding: 40px;
+            border-radius: 30px;
+            text-align: center;
+            border: 1px solid rgba(255,255,255,0.1);
+            box-shadow: 0 0 50px rgba(0,0,0,0.8);
+            width: 90%;
+            max-width: 450px;
+            backdrop-filter: blur(10px);
+        }
+
+        .modal h2 {
+            font-size: 2.5rem;
+            margin-bottom: 20px;
+            background: linear-gradient(to right, var(--accent-x), var(--accent-o));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            text-transform: uppercase;
+        }
+
+        .input-group { margin-bottom: 20px; text-align: left; }
+        .input-group label { display: block; font-size: 0.9rem; color: #888; margin-bottom: 5px; }
+        input {
+            width: 100%;
+            padding: 12px;
+            background: #25252b;
+            border: 1px solid #333;
+            color: white;
+            border-radius: 8px;
+            font-size: 1rem;
+            outline: none;
+        }
+        input:focus { border-color: var(--accent-x); }
+
+        .btn-primary {
+            background: linear-gradient(90deg, var(--accent-x), var(--accent-o));
+            border: none;
+            padding: 15px 40px;
+            color: white;
+            font-weight: bold;
+            font-size: 1.1rem;
+            border-radius: 50px;
+            cursor: pointer;
+            margin-top: 10px;
+            box-shadow: 0 10px 20px rgba(0,0,0,0.3);
+            transition: transform 0.2s;
+        }
+        .btn-primary:hover { transform: translateY(-3px); box-shadow: 0 15px 30px rgba(0,0,0,0.4); }
+        .btn-primary:active { transform: scale(0.95); }
+
+        #confetti-canvas { position: fixed; top: 0; left: 0; pointer-events: none; z-index: 99; }
+
+        @media (max-width: 800px) {
+            .main-layout { flex-direction: column; gap: 20px; }
+            .player-panel { width: 100%; height: auto; flex-direction: row; padding: 10px; }
+            .anime-img { width: 60px; height: 60px; margin-bottom: 0; margin-right: 15px; border-radius: 50%; }
+            .player-info { text-align: left; }
+            .player-name { font-size: 1.2rem; }
+            .player-score { margin-left: auto; font-size: 1.5rem; }
+            .cell { width: 80px; height: 80px; font-size: 2.5rem; }
+        }
+    </style>
+</head>
+<body>
+
+    <canvas id="confetti-canvas"></canvas>
+
+    <div id="startScreen" class="overlay">
+        <div class="modal">
+            <h2>Tic Tac Toe<br>Battle Arena</h2>
+            <div class="input-group">
+                <label>Player X Name</label>
+                <input type="text" id="inputX" placeholder="Enter Name..." value="Hero">
+            </div>
+            <div class="input-group">
+                <label>Player O Name</label>
+                <input type="text" id="inputO" placeholder="Enter Name..." value="Villain">
+            </div>
+            <button class="btn-primary" onclick="startGame()">ENTER ARENA</button>
+        </div>
+    </div>
+
+    <div id="winnerScreen" class="overlay hidden">
+        <div class="modal">
+            <h2 id="winnerText">WINNER!</h2>
+            <p id="winnerSubtext" style="color:#ccc; margin-bottom: 20px; font-size: 1.2rem;">Victory Achieved</p>
+            <button class="btn-primary" onclick="resetGame()">PLAY AGAIN</button>
+        </div>
+    </div>
+
+    <div class="main-layout" id="gameUI">
+        
+        <div class="player-panel active-x" id="panelX">
+            <img src="https://api.dicebear.com/7.x/avataaars/svg?seed=Felix&backgroundColor=b6e3f4" class="anime-img" alt="Player X">
+            <div class="player-info">
+                <div class="player-name p-x" id="nameX">Player X</div>
+                <div style="font-size: 0.8rem; color: #666;">TEAM CYAN</div>
+            </div>
+            <div class="player-score p-x" id="scoreX">0</div>
+        </div>
+
+        <div class="game-area">
+            <div class="turn-indicator" id="statusText">WAITING FOR PLAYERS...</div>
+            <div class="board">
+                <div class="cell" onclick="cellClicked(0)"></div>
+                <div class="cell" onclick="cellClicked(1)"></div>
+                <div class="cell" onclick="cellClicked(2)"></div>
+                <div class="cell" onclick="cellClicked(3)"></div>
+                <div class="cell" onclick="cellClicked(4)"></div>
+                <div class="cell" onclick="cellClicked(5)"></div>
+                <div class="cell" onclick="cellClicked(6)"></div>
+                <div class="cell" onclick="cellClicked(7)"></div>
+                <div class="cell" onclick="cellClicked(8)"></div>
+            </div>
+        </div>
+
+        <div class="player-panel" id="panelO">
+            <img src="https://api.dicebear.com/7.x/avataaars/svg?seed=Aneka&backgroundColor=ffdfbf" class="anime-img" alt="Player O">
+            <div class="player-info">
+                <div class="player-name p-o" id="nameO">Player O</div>
+                <div style="font-size: 0.8rem; color: #666;">TEAM NEON</div>
+            </div>
+            <div class="player-score p-o" id="scoreO">0</div>
+        </div>
+
+    </div>
+
+    <script>
+        // --- GAME VARIABLES ---
+        let board = ["", "", "", "", "", "", "", "", ""];
+        let currentPlayer = "X";
+        let isGameActive = false;
+        let pXName = "Hero";
+        let pOName = "Villain";
+        let scores = { X: 0, O: 0 };
+        let audioCtx;
+        let musicInterval;
+        let isMusicPlaying = false;
+        let soundEnabled = true;
+
+        // --- DOM ELEMENTS ---
+        const statusText = document.getElementById('statusText');
+        const cells = document.querySelectorAll('.cell');
+        const panelX = document.getElementById('panelX');
+        const panelO = document.getElementById('panelO');
+        const winnerScreen = document.getElementById('winnerScreen');
+        const startScreen = document.getElementById('startScreen');
+        const confettiCanvas = document.getElementById('confetti-canvas');
+
+        // --- AUDIO ENGINE (Safe Mode) ---
+        
+        function initAudio() {
+            try {
+                if (!audioCtx) {
+                    audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+                }
+                if (audioCtx.state === 'suspended') {
+                    audioCtx.resume();
+                }
+            } catch (e) {
+                soundEnabled = false;
+            }
+        }
+
+        function playTone(freq, type, duration, vol = 0.1) {
+            if (!soundEnabled || !audioCtx) return;
+            try {
+                const osc = audioCtx.createOscillator();
+                const gain = audioCtx.createGain();
+                osc.connect(gain);
+                gain.connect(audioCtx.destination);
+                osc.type = type;
+                osc.frequency.value = freq;
+                gain.gain.setValueAtTime(vol, audioCtx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + duration);
+                osc.start();
+                osc.stop(audioCtx.currentTime + duration);
+            } catch(e) {
+            }
+        }
+
+        function playStartSound() {
+            initAudio();
+            playTone(400, 'sawtooth', 0.6, 0.2);
+        }
+
+        function playClickSound() {
+            playTone(currentPlayer === 'X' ? 600 : 400, 'sine', 0.1);
+        }
+
+        function playWinSound() {
+            if (!soundEnabled || !audioCtx) return;
+            const now = audioCtx.currentTime;
+            [523.25, 659.25, 783.99, 1046.50].forEach((freq, i) => {
+                try {
+                    const osc = audioCtx.createOscillator();
+                    const gain = audioCtx.createGain();
+                    osc.connect(gain);
+                    gain.connect(audioCtx.destination);
+                    osc.type = 'triangle';
+                    osc.frequency.value = freq;
+                    gain.gain.setValueAtTime(0, now);
+                    gain.gain.linearRampToValueAtTime(0.1, now + i*0.1 + 0.1);
+                    gain.gain.exponentialRampToValueAtTime(0.001, now + i*0.1 + 1.0);
+                    osc.start(now + i*0.1);
+                    osc.stop(now + i*0.1 + 1.0);
+                } catch(e) {}
+            });
+        }
+
+        function playBgMusic() {
+            if (isMusicPlaying || !soundEnabled) return;
+            isMusicPlaying = true;
+            let noteIndex = 0;
+            const melody = [261, 311, 392, 466, 349, 415, 523, 622]; 
+
+            musicInterval = setInterval(() => {
+                if (!isGameActive) return;
+                playTone(melody[noteIndex % melody.length], 'triangle', 1.5, 0.03);
+                noteIndex++;
+            }, 800);
+        }
+
+        // --- GAME LOGIC ---
+
+        function startGame() {
+            const xVal = document.getElementById('inputX').value;
+            const oVal = document.getElementById('inputO').value;
+            if(xVal.trim() !== "") pXName = xVal;
+            if(oVal.trim() !== "") pOName = oVal;
+
+            document.getElementById('nameX').textContent = pXName;
+            document.getElementById('nameO').textContent = pOName;
+
+            startScreen.style.opacity = '0';
+            startScreen.style.visibility = 'hidden';
+
+            setTimeout(() => {
+                isGameActive = true;
+                playStartSound();
+                setTimeout(playBgMusic, 500);
+                updateStatus(`Battle Start! ${pXName}'s Turn`);
+            }, 500);
+        }
+
+        function cellClicked(index) {
+            if (!isGameActive || board[index] !== "") return;
+
+            board[index] = currentPlayer;
+            cells[index].textContent = currentPlayer;
+            cells[index].classList.add(currentPlayer.toLowerCase());
+            playClickSound();
+
+            if (checkWin()) {
+                handleWin();
+            } else if (!board.includes("")) {
+                handleDraw();
+            } else {
+                switchPlayer();
+            }
+        }
+
+        function switchPlayer() {
+            currentPlayer = currentPlayer === "X" ? "O" : "X";
+            
+            if(currentPlayer === "X") {
+                panelX.classList.add('active-x');
+                panelO.classList.remove('active-o');
+                updateStatus(`${pXName}'s Turn`);
+            } else {
+                panelO.classList.add('active-o');
+                panelX.classList.remove('active-x');
+                updateStatus(`${pOName}'s Turn`);
+            }
+        }
+
+        function updateStatus(msg) {
+            statusText.textContent = msg;
+        }
+
+        function checkWin() {
+            const conditions = [
+                [0, 1, 2], [3, 4, 5], [6, 7, 8],
+                [0, 3, 6], [1, 4, 7], [2, 5, 8],
+                [0, 4, 8], [2, 4, 6]
+            ];
+            return conditions.some(condition => {
+                if (board[condition[0]] !== "" && 
+                    board[condition[0]] === board[condition[1]] && 
+                    board[condition[1]] === board[condition[2]]) {
+                        condition.forEach(i => cells[i].classList.add('win'));
+                        return true;
+                }
+                return false;
+            });
+        }
+
+        function handleWin() {
+            isGameActive = false;
+            clearInterval(musicInterval);
+            isMusicPlaying = false;
+            playWinSound();
+            
+            const winnerName = currentPlayer === "X" ? pXName : pOName;
+            scores[currentPlayer]++;
+            updateScores();
+
+            document.getElementById('winnerText').textContent = `${winnerName} WINS!`;
+            document.getElementById('winnerText').style.color = currentPlayer === "X" ? "var(--accent-x)" : "var(--accent-o)";
+            
+            setTimeout(() => {
+                winnerScreen.style.opacity = '1';
+                winnerScreen.style.visibility = 'visible';
+                winnerScreen.classList.remove('hidden');
+                startConfetti();
+            }, 800);
+        }
+
+        function handleDraw() {
+            isGameActive = false;
+            clearInterval(musicInterval);
+            isMusicPlaying = false;
+            document.getElementById('winnerText').textContent = "DRAW!";
+            document.getElementById('winnerText').style.color = "#fff";
+            setTimeout(() => {
+                winnerScreen.style.opacity = '1';
+                winnerScreen.style.visibility = 'visible';
+                winnerScreen.classList.remove('hidden');
+            }, 500);
+        }
+
+        function updateScores() {
+            document.getElementById('scoreX').textContent = scores.X;
+            document.getElementById('scoreO').textContent = scores.O;
+        }
+
+        function resetGame() {
+            board = ["", "", "", "", "", "", "", "", ""];
+            currentPlayer = "X";
+            cells.forEach(c => {
+                c.textContent = "";
+                c.className = "cell";
+            });
+            winnerScreen.style.opacity = '0';
+            winnerScreen.style.visibility = 'hidden';
+            winnerScreen.classList.add('hidden');
+            stopConfetti();
+            
+            panelX.classList.add('active-x');
+            panelO.classList.remove('active-o');
+            
+            isGameActive = true;
+            playStartSound();
+            setTimeout(playBgMusic, 500);
+            updateStatus(`${pXName}'s Turn`);
+        }
+
+        // --- SIMPLE CONFETTI SYSTEM ---
+        let confettiInterval;
+        const ctx = confettiCanvas.getContext('2d');
+        confettiCanvas.width = window.innerWidth;
+        confettiCanvas.height = window.innerHeight;
+        let particles = [];
+
+        function startConfetti() {
+            particles = [];
+            confettiInterval = setInterval(() => {
+                particles.push({
+                    x: Math.random() * window.innerWidth,
+                    y: -10,
+                    size: Math.random() * 10 + 5,
+                    color: `hsl(${Math.random() * 360}, 100%, 50%)`,
+                    speed: Math.random() * 5 + 2,
+                    sway: Math.random() * 2 - 1
+                });
+            }, 50);
+            requestAnimationFrame(renderConfetti);
+        }
+
+        function renderConfetti() {
+            if (particles.length === 0) return;
+            ctx.clearRect(0, 0, confettiCanvas.width, confettiCanvas.height);
+            
+            for (let i = 0; i < particles.length; i++) {
+                let p = particles[i];
+                ctx.fillStyle = p.color;
+                ctx.fillRect(p.x, p.y, p.size, p.size);
+                p.y += p.speed;
+                p.x += p.sway;
+                
+                if (p.y > window.innerHeight) {
+                    particles.splice(i, 1);
+                    i--;
+                }
+            }
+            if (particles.length > 0) requestAnimationFrame(renderConfetti);
+        }
+
+        function stopConfetti() {
+            clearInterval(confettiInterval);
+            particles = [];
+            ctx.clearRect(0, 0, confettiCanvas.width, confettiCanvas.height);
+        }
+
+        window.addEventListener('resize', () => {
+            confettiCanvas.width = window.innerWidth;
+            confettiCanvas.height = window.innerHeight;
+        });
+
+    </script>
+</body>
+</html>
